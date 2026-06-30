@@ -1,0 +1,1132 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Gestionnaire des stocks DNMADE Daunot</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+  /* ─── DESIGN TOKENS ─── */
+  :root {
+    --bg: #F7F8FA;
+    --surface: #FFFFFF;
+    --surface2: #EEF1F7;
+    --border: #D8DDE8;
+    --accent-son: #3B6FCA;
+    --accent-lum: #E8A020;
+    --accent-vid: #2AA87E;
+    --accent: #3B6FCA;
+    --accent-light: #E8EEFB;
+    --text: #1A1D23;
+    --text2: #5A6070;
+    --text3: #8A90A0;
+    --danger: #D94040;
+    --success: #2AA87E;
+    --radius: 10px;
+    --radius-sm: 6px;
+    --shadow: 0 2px 12px rgba(0,0,0,0.07);
+    --shadow-lg: 0 4px 24px rgba(0,0,0,0.12);
+    --font: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    --header-h: 52px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; overflow: hidden; background: var(--bg); font-family: var(--font); color: var(--text); font-size: 14px; }
+
+  /* ─── APP SHELL ─── */
+  #app { height: 100vh; display: flex; flex-direction: column; }
+  .app-header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 16px;
+    height: var(--header-h);
+    display: flex; align-items: center; justify-content: space-between;
+    flex-shrink: 0;
+    box-shadow: var(--shadow);
+    z-index: 10;
+  }
+  .app-header h1 { font-size: 13px; font-weight: 700; letter-spacing: .3px; color: var(--text); }
+  .app-header .badge {
+    font-size: 10px; font-weight: 600; padding: 2px 8px;
+    border-radius: 20px; background: var(--accent-light); color: var(--accent);
+    text-transform: uppercase; letter-spacing: .5px;
+  }
+  .tab-bar {
+    display: flex; background: var(--surface2); border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .tab-btn {
+    flex: 1; padding: 9px 4px; font-size: 11px; font-weight: 600; letter-spacing: .3px;
+    text-transform: uppercase; border: none; background: transparent; cursor: pointer;
+    color: var(--text3); border-bottom: 2px solid transparent; transition: all .2s;
+  }
+  .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); background: var(--surface); }
+
+  /* ─── SCREENS ─── */
+  .screen { display: none; flex: 1; overflow: hidden; flex-direction: column; }
+  .screen.active { display: flex; }
+
+  /* ─── FORM ELEMENTS ─── */
+  label { font-size: 11px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: .4px; display: block; margin-bottom: 3px; }
+  select, input[type="text"], input[type="date"], input[type="password"] {
+    width: 100%; padding: 7px 10px; border: 1px solid var(--border);
+    border-radius: var(--radius-sm); font-size: 13px; font-family: var(--font);
+    background: var(--surface); color: var(--text); outline: none; transition: border-color .2s;
+    appearance: auto;
+  }
+  select:focus, input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-light); }
+
+  /* ─── BUTTONS ─── */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 9px 16px; border-radius: var(--radius-sm); font-size: 13px;
+    font-weight: 600; border: none; cursor: pointer; transition: all .15s; text-decoration: none;
+  }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { filter: brightness(1.1); }
+  .btn-success { background: var(--success); color: #fff; }
+  .btn-outline { background: transparent; color: var(--accent); border: 1.5px solid var(--accent); }
+  .btn-sm { padding: 5px 10px; font-size: 12px; }
+  .btn-block { width: 100%; }
+  .btn-print {
+    background: linear-gradient(135deg, #1A1D23, #3B6FCA);
+    color: #fff; font-size: 13px; font-weight: 700; letter-spacing: .5px;
+    padding: 11px; border-radius: var(--radius-sm);
+    border: none; cursor: pointer; width: 100%; transition: opacity .2s;
+  }
+  .btn-print:hover { opacity: .9; }
+
+  /* ─── QTY CONTROL ─── */
+  .qty-ctrl { display: flex; align-items: center; gap: 4px; }
+  .qty-btn {
+    width: 24px; height: 24px; border-radius: 50%; border: 1.5px solid var(--border);
+    background: var(--surface); color: var(--text); font-size: 16px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center; cursor: pointer; line-height: 1;
+    transition: all .15s; flex-shrink: 0;
+  }
+  .qty-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+  .qty-val { min-width: 28px; text-align: center; font-weight: 700; font-size: 14px; }
+
+  /* ─── PANELS ─── */
+  .panel { background: var(--surface); border-radius: var(--radius); padding: 10px 12px; margin-bottom: 8px; border: 1px solid var(--border); }
+  .section-label { font-size: 10px; font-weight: 700; color: var(--text3); text-transform: uppercase; letter-spacing: .6px; margin-bottom: 6px; }
+
+  /* ─── MODAL ─── */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 100;
+    display: flex; align-items: center; justify-content: center; padding: 20px;
+    backdrop-filter: blur(2px);
+  }
+  .modal-overlay.hidden { display: none; }
+  .modal-box {
+    background: var(--surface); border-radius: var(--radius); padding: 24px 20px;
+    width: 100%; max-width: 340px; box-shadow: var(--shadow-lg);
+  }
+  .modal-box h2 { font-size: 15px; font-weight: 700; margin-bottom: 16px; }
+  .modal-box .modal-btns { display: flex; gap: 8px; margin-top: 16px; }
+
+  /* ─── TOAST ─── */
+  #toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+    background: #1A1D23; color: #fff; padding: 10px 20px; border-radius: 30px;
+    font-size: 13px; font-weight: 600; z-index: 200; display: none;
+    white-space: nowrap; box-shadow: var(--shadow-lg);
+  }
+  #toast.show { display: block; animation: fadeInUp .3s ease; }
+  @keyframes fadeInUp { from { opacity: 0; transform: translateX(-50%) translateY(10px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+
+  /* ─── STOCK LIST ─── */
+  .stock-list { overflow-y: auto; flex: 1; }
+  .stock-item {
+    display: flex; align-items: center; padding: 7px 0;
+    border-bottom: 1px solid var(--surface2); gap: 8px;
+  }
+  .stock-item:last-child { border-bottom: none; }
+  .stock-ref { flex: 1; min-width: 0; }
+  .stock-ref .ref-name { font-weight: 600; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .stock-ref .ref-dispo { font-size: 11px; color: var(--text3); }
+  .dispo-ok { color: var(--success) !important; font-weight: 700; }
+  .dispo-low { color: var(--accent-lum) !important; font-weight: 700; }
+  .dispo-zero { color: var(--danger) !important; font-weight: 700; }
+
+  /* ─── DESCRIPTIF PANEL ─── */
+  #desc-panel { font-size: 12px; color: var(--text2); line-height: 1.5; min-height: 40px; }
+
+  /* ─── HISTORIQUE TABLE ─── */
+  .hist-table-wrap { overflow: auto; flex: 1; }
+  table { width: 100%; border-collapse: collapse; font-size: 11px; }
+  th { background: var(--surface2); color: var(--text2); font-weight: 700; padding: 7px 8px; text-align: left; position: sticky; top: 0; white-space: nowrap; }
+  td { padding: 6px 8px; border-bottom: 1px solid var(--surface2); vertical-align: top; }
+  tr:hover td { background: var(--accent-light); }
+
+  /* ─── ADMIN REQUESTS LIST ─── */
+  .req-item {
+    padding: 8px 10px; border-radius: var(--radius-sm); background: var(--surface2);
+    margin-bottom: 6px; cursor: pointer; border: 1.5px solid transparent; transition: all .15s;
+  }
+  .req-item.selected { background: var(--accent-light); border-color: var(--accent); }
+  .req-item .ri-title { font-weight: 700; font-size: 12px; }
+  .req-item .ri-sub { font-size: 11px; color: var(--text3); margin-top: 2px; }
+
+  /* ─── DOMAINE COLOR DOTS ─── */
+  .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .dot-son { background: var(--accent-son); }
+  .dot-lum { background: var(--accent-lum); }
+  .dot-vid { background: var(--accent-vid); }
+
+  /* ─── SCROLLBAR ─── */
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  /* ─── GRID HELPERS ─── */
+  .row { display: flex; gap: 8px; }
+  .row > * { flex: 1; min-width: 0; }
+  .col { display: flex; flex-direction: column; }
+
+  /* ─── LOGIN SCREEN ─── */
+  #login-screen {
+    position: fixed; inset: 0; background: linear-gradient(160deg, #1A1D23 0%, #2D3A5A 100%);
+    display: flex; align-items: center; justify-content: center; z-index: 50; padding: 20px;
+  }
+  #login-screen.hidden { display: none; }
+  .login-box {
+    background: var(--surface); border-radius: var(--radius); padding: 28px 24px;
+    width: 100%; max-width: 320px; box-shadow: var(--shadow-lg);
+  }
+  .login-box h2 { font-size: 16px; font-weight: 800; margin-bottom: 4px; }
+  .login-box p { font-size: 12px; color: var(--text3); margin-bottom: 18px; }
+  .login-admin-info { font-size: 11px; color: var(--text3); margin-top: 12px; text-align: center; }
+
+  /* ─── COMPACT ROW FOR USER SCREEN ─── */
+  .user-content {
+    padding: 10px 12px;
+    display: flex; flex-direction: column; gap: 8px;
+    flex: 1; overflow: hidden;
+  }
+  .two-col { display: flex; gap: 8px; }
+  .two-col > * { flex: 1; min-width: 0; }
+  .main-area { display: flex; gap: 8px; flex: 1; overflow: hidden; min-height: 0; }
+  .list-col { flex: 1.2; display: flex; flex-direction: column; overflow: hidden; }
+  .desc-col { flex: 0.8; display: flex; flex-direction: column; overflow: hidden; }
+
+  /* ─── RESPONSIVE ─── */
+  @media (max-width: 400px) {
+    .two-col { flex-direction: column; }
+    .main-area { flex-direction: column; }
+    .desc-col { flex: none; height: 80px; }
+  }
+
+  /* ─── AJOUTER MODAL ─── */
+  .add-ref-list { max-height: 200px; overflow-y: auto; }
+  .add-ref-item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 0; border-bottom: 1px solid var(--surface2);
+  }
+  .add-ref-item:last-child { border-bottom: none; }
+  .checkbox-label { display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; }
+  input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; }
+
+  /* ─── SUMMARY PRINT ─── */
+  #print-area {
+    background: #fff; padding: 20px; font-family: var(--font);
+    min-width: 320px; color: #1A1D23;
+  }
+  .print-header { text-align: center; margin-bottom: 16px; border-bottom: 2px solid #3B6FCA; padding-bottom: 12px; }
+  .print-header h2 { font-size: 16px; font-weight: 800; color: #3B6FCA; }
+  .print-header p { font-size: 11px; color: #666; }
+  .print-info { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 12px; font-size: 12px; }
+  .print-info dt { font-weight: 700; color: #666; font-size: 10px; text-transform: uppercase; }
+  .print-info dd { color: #1A1D23; }
+  .print-table { width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 8px; }
+  .print-table th { background: #3B6FCA; color: #fff; padding: 6px 8px; text-align: left; }
+  .print-table td { padding: 5px 8px; border-bottom: 1px solid #eee; }
+  .print-table tr:nth-child(even) td { background: #f5f7fc; }
+  .print-footer { margin-top: 16px; font-size: 10px; color: #999; text-align: center; }
+
+  /* ─── BADGE DOMAINE ─── */
+  .badge-domain {
+    font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 20px;
+    letter-spacing: .3px;
+  }
+  .badge-son { background: #E8EEFB; color: var(--accent-son); }
+  .badge-lum { background: #FDF3E3; color: var(--accent-lum); }
+  .badge-vid { background: #E3F5EF; color: var(--accent-vid); }
+
+  /* ─── STATUS CHIP ─── */
+  .chip {
+    font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 20px;
+    background: var(--surface2); color: var(--text2);
+  }
+  .chip-ok { background: #E3F5EF; color: var(--success); }
+  .chip-warn { background: #FDF3E3; color: var(--accent-lum); }
+  .chip-danger { background: #FEECEC; color: var(--danger); }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════
+     DONNÉES GLOBALES (à adapter / remplacer par Google Sheets)
+     ══════════════════════════════════════════════ -->
+<script>
+// ─── CONFIGURATION ───
+const CONFIG = {
+  // Remplacez par votre URL de déploiement Google Apps Script (voir SCRIPT.gs)
+  SHEET_URL: "https://script.google.com/macros/s/AKfycbxOqp34hXjzxxL5pBGyy3EyD-9IScWa3ts7f48A1cxJurvQeP-6OSIt4lWoteJjdV5W/exec",
+  ADMIN_PASSWORD: "admin" // fallback, overridden per admin below
+};
+
+const ADMINS = [
+  { nom: "Dolet Alex",      domaine: "SON",    password: "admin SON",   color: "son" },
+  { nom: "Bidaud Luc",      domaine: "LUMIERE",password: "admin LUM",   color: "lum" },
+  { nom: "Squillace David", domaine: "VIDEO",  password: "admin VIDEO", color: "vid" },
+];
+
+const UTILISATEURS = [
+  "Alice Martin","Baptiste Durand","Camille Petit","David Moreau",
+  "Emma Richard","François Simon","Gabriel Henry","Hélène Thomas",
+  "Inès Dubois","Jules Leclerc","Karine Martinez","Louis Garcia",
+  "Marie Lopez","Nicolas Fontaine","Océane Rousseau","Paul Bernard"
+];
+
+// ─── CATALOGUE DU STOCK ───
+let STOCK = {
+  SON: [
+    { ref:"SON-001", desc:"Console de mixage 16 canaux Yamaha MG16", qte:3, qteDispo:3 },
+    { ref:"SON-002", desc:"Microphone cardioïde Shure SM58", qte:12, qteDispo:12 },
+    { ref:"SON-003", desc:"Câble XLR 5m (pack x5)", qte:8, qteDispo:8 },
+    { ref:"SON-004", desc:"Enceinte active JBL EON615 15\"", qte:4, qteDispo:4 },
+    { ref:"SON-005", desc:"Casque studio Sony MDR-7506", qte:6, qteDispo:6 },
+    { ref:"SON-006", desc:"Interface audio Focusrite Scarlett 2i2", qte:4, qteDispo:4 },
+    { ref:"SON-007", desc:"Pieds de microphone télescopique", qte:10, qteDispo:10 },
+    { ref:"SON-008", desc:"Câble jack TRS 3m (pack x10)", qte:5, qteDispo:5 },
+  ],
+  LUMIERE: [
+    { ref:"LUM-001", desc:"Projecteur PAR LED RGBW 18x18W", qte:8, qteDispo:8 },
+    { ref:"LUM-002", desc:"Console d'éclairage DMX Chamsys MQ60", qte:2, qteDispo:2 },
+    { ref:"LUM-003", desc:"Machine à brouillard Antari F-80Z", qte:2, qteDispo:2 },
+    { ref:"LUM-004", desc:"Câble DMX 3m (pack x10)", qte:6, qteDispo:6 },
+    { ref:"LUM-005", desc:"Lyres wash Robe Robin MegaPointe", qte:4, qteDispo:4 },
+    { ref:"LUM-006", desc:"Structure alu 2m + accessoires", qte:10, qteDispo:10 },
+    { ref:"LUM-007", desc:"Gradateurs ETC SmartPack 6x2kW", qte:3, qteDispo:3 },
+  ],
+  VIDEO: [
+    { ref:"VID-001", desc:"Caméra 4K Sony FX3 + objectif 24-70mm", qte:2, qteDispo:2 },
+    { ref:"VID-002", desc:"Vidéoprojecteur laser Epson EB-L615U 6000lm", qte:2, qteDispo:2 },
+    { ref:"VID-003", desc:"Écran de projection 3m x 2m", qte:3, qteDispo:3 },
+    { ref:"VID-004", desc:"Switch HDMI 4 entrées / 1 sortie", qte:4, qteDispo:4 },
+    { ref:"VID-005", desc:"Câble HDMI 10m", qte:8, qteDispo:8 },
+    { ref:"VID-006", desc:"Streaming encoder Blackmagic ATEM Mini Pro", qte:2, qteDispo:2 },
+    { ref:"VID-007", desc:"Trépied vidéo Manfrotto MVH502AH", qte:4, qteDispo:4 },
+  ]
+};
+
+// ─── DEMANDES ENREGISTRÉES (chargées depuis Google Sheets au démarrage) ───
+let DEMANDES = [];
+let currentAdmin = null;
+let currentUser = null;
+let panier = []; // { ref, desc, domaine, qteMax, qteDemandee }
+let selectedReq = null;
+
+// ─── HELPERS ───
+function today() {
+  return new Date().toISOString().split("T")[0];
+}
+function fmtDate(d) {
+  if (!d) return "–";
+  const [y,m,j] = d.split("-");
+  return `${j}/${m}/${y}`;
+}
+function showToast(msg, duration=2500) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  setTimeout(() => t.classList.remove("show"), duration);
+}
+function getDomainKey(domaine) {
+  if (domaine === "Son") return "SON";
+  if (domaine === "Lumière") return "LUMIERE";
+  if (domaine === "Vidéo") return "VIDEO";
+  return "SON";
+}
+function getDomainColor(domaine) {
+  if (domaine === "SON" || domaine === "Son") return "son";
+  if (domaine === "LUMIERE" || domaine === "Lumière") return "lum";
+  if (domaine === "VIDEO" || domaine === "Vidéo") return "vid";
+  return "son";
+}
+
+// ─── COMMUNICATION GOOGLE SHEETS ───
+async function sendToSheet(action, data) {
+  try {
+    const url = CONFIG.SHEET_URL + "?action=" + encodeURIComponent(action) +
+                "&data=" + encodeURIComponent(JSON.stringify(data));
+    const resp = await fetch(url, { method: "GET", mode: "cors" });
+    const json = await resp.json();
+    return json;
+  } catch(e) {
+    console.warn("Google Sheets non connecté :", e);
+    return { ok: false, err: e.message };
+  }
+}
+
+async function loadDemandesFromSheet() {
+  const result = await sendToSheet("getDemandes", {});
+  if (result.ok && result.data) {
+    DEMANDES = result.data;
+    refreshAdminView();
+    refreshHistorique();
+  }
+}
+
+async function loadStockFromSheet() {
+  const result = await sendToSheet("getStock", {});
+  if (result.ok && result.data) {
+    // Met à jour les quantités disponibles depuis la feuille STOCK
+    result.data.forEach(row => {
+      Object.values(STOCK).forEach(arr => {
+        const item = arr.find(i => i.ref === row.ref);
+        if (item) item.qteDispo = parseInt(row.qteDispo) || 0;
+      });
+    });
+    refreshStockList();
+  }
+}
+</script>
+
+<!-- ══════════════════════════════════════════════
+     LOGIN OVERLAY
+     ══════════════════════════════════════════════ -->
+<div id="login-screen" class="hidden">
+  <div class="login-box">
+    <h2>🔐 Espace Administrateur</h2>
+    <p>Identifiez-vous pour accéder à la gestion du stock</p>
+    <div style="margin-bottom:12px">
+      <label>Sélectionner l'administrateur</label>
+      <select id="login-admin-select">
+        <option value="">— Choisir —</option>
+        <option value="0">Dolet Alex — SON</option>
+        <option value="1">Bidaud Luc — LUMIERE</option>
+        <option value="2">Squillace David — VIDEO</option>
+      </select>
+    </div>
+    <div style="margin-bottom:12px">
+      <label>Mot de passe</label>
+      <input type="password" id="login-password" placeholder="Entrez le mot de passe" autocomplete="current-password">
+    </div>
+    <div class="row">
+      <button class="btn btn-outline" onclick="closeLogin()">Annuler</button>
+      <button class="btn btn-primary" onclick="doLogin()">Connexion</button>
+    </div>
+    <p class="login-admin-info">MDP par défaut : admin SON / admin LUM / admin VIDEO</p>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     TOAST
+     ══════════════════════════════════════════════ -->
+<div id="toast"></div>
+
+<!-- ══════════════════════════════════════════════
+     MODAL AJOUTER RÉFÉRENCE
+     ══════════════════════════════════════════════ -->
+<div id="modal-ajouter" class="modal-overlay hidden">
+  <div class="modal-box">
+    <h2>➕ Ajouter une référence</h2>
+    <p style="font-size:12px;color:var(--text3);margin-bottom:10px">Références disponibles dans le domaine sélectionné</p>
+    <div class="add-ref-list" id="add-ref-list"></div>
+    <div class="modal-btns">
+      <button class="btn btn-outline" style="flex:1" onclick="closeAjouter()">Annuler</button>
+      <button class="btn btn-primary" style="flex:1" onclick="confirmAjouter()">Ajouter</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     APP
+     ══════════════════════════════════════════════ -->
+<div id="app">
+  <div class="app-header">
+    <h1>📦 Gestionnaire DNMADE Daunot</h1>
+    <span class="badge" id="header-badge">Stock</span>
+  </div>
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="switchTab('user')" id="tab-user">Demande</button>
+    <button class="tab-btn" onclick="switchTab('admin')" id="tab-admin">Admin</button>
+    <button class="tab-btn" onclick="switchTab('historique')" id="tab-histo">Historique</button>
+  </div>
+
+  <!-- ════════════════════════════════════════
+       ÉCRAN UTILISATEUR — DEMANDE D'UTILISATEUR
+       ════════════════════════════════════════ -->
+  <div class="screen active" id="screen-user">
+    <div class="user-content">
+      <!-- LIGNE 1 : utilisateur / projet / domaine -->
+      <div class="row">
+        <div>
+          <label>Utilisateur</label>
+          <select id="u-user">
+            <option value="">— Choisir —</option>
+          </select>
+        </div>
+        <div>
+          <label>Projet</label>
+          <input type="text" id="u-projet" placeholder="Nom du projet">
+        </div>
+        <div>
+          <label>Domaine</label>
+          <select id="u-domaine" onchange="onDomaineChange()">
+            <option value="Son">🔊 Son</option>
+            <option value="Lumière">💡 Lumière</option>
+            <option value="Vidéo">🎬 Vidéo</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- LIGNE 2 : dates -->
+      <div class="row">
+        <div>
+          <label>Date de sortie</label>
+          <input type="date" id="u-date-sortie" value="">
+        </div>
+        <div>
+          <label>Date de retour</label>
+          <input type="date" id="u-date-retour" value="">
+        </div>
+      </div>
+
+      <!-- ZONE PRINCIPALE : liste + descriptif -->
+      <div class="main-area">
+        <!-- Colonne liste -->
+        <div class="list-col">
+          <div class="section-label">Références disponibles</div>
+          <div class="panel" style="flex:1;overflow:hidden;padding:8px 10px;display:flex;flex-direction:column;">
+            <div class="stock-list" id="stock-list"></div>
+          </div>
+        </div>
+        <!-- Colonne descriptif -->
+        <div class="desc-col">
+          <div class="section-label">Descriptif</div>
+          <div class="panel" style="flex:1;overflow-y:auto;">
+            <div id="desc-panel">Cliquez sur une référence pour voir son descriptif.</div>
+          </div>
+          <!-- Panier résumé -->
+          <div class="section-label" style="margin-top:6px">Sélection</div>
+          <div class="panel" style="overflow-y:auto;max-height:90px;padding:6px 10px;">
+            <div id="panier-summary" style="font-size:11px;color:var(--text3)">Aucun article sélectionné</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- VALIDER ET IMPRIMER -->
+      <button class="btn-print" onclick="validerEtImprimer()">🖨️ VALIDER ET IMPRIMER</button>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════
+       ÉCRAN ADMINISTRATEUR
+       ════════════════════════════════════════ -->
+  <div class="screen" id="screen-admin">
+    <div class="user-content">
+      <!-- Header admin -->
+      <div class="row" style="align-items:center">
+        <div style="flex:1">
+          <label>Administrateur connecté</label>
+          <div id="admin-nom-display" style="font-weight:700;font-size:14px;color:var(--accent)">— Non connecté —</div>
+        </div>
+        <div style="flex:none">
+          <button class="btn btn-outline btn-sm" onclick="openLogin()">🔐 Connexion</button>
+          <button class="btn btn-sm" style="background:var(--surface2);color:var(--text2);margin-left:4px" onclick="logout()">Déconn.</button>
+        </div>
+      </div>
+
+      <!-- Infos demande sélectionnée -->
+      <div class="panel" style="padding:8px 12px">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">
+          <div><div class="section-label">Utilisateur</div><div id="a-user" style="font-size:12px;font-weight:600">–</div></div>
+          <div><div class="section-label">Projet</div><div id="a-projet" style="font-size:12px;font-weight:600">–</div></div>
+          <div><div class="section-label">Domaine</div><div id="a-domaine" style="font-size:12px;font-weight:600">–</div></div>
+          <div><div class="section-label">Demande</div><div id="a-date-demande" style="font-size:12px">–</div></div>
+          <div><div class="section-label">Sortie</div><div id="a-date-sortie" style="font-size:12px">–</div></div>
+          <div><div class="section-label">Retour</div><div id="a-date-retour" style="font-size:12px">–</div></div>
+        </div>
+      </div>
+
+      <!-- Liste des demandes -->
+      <div style="flex:none">
+        <div class="section-label">Demandes enregistrées</div>
+        <div id="admin-req-list" style="overflow-x:auto;display:flex;gap:8px;padding-bottom:4px;overflow-y:hidden">
+          <div style="font-size:12px;color:var(--text3)">Aucune demande</div>
+        </div>
+      </div>
+
+      <!-- Détail de la demande -->
+      <div class="section-label">Références de la demande</div>
+      <div class="panel" style="flex:1;overflow-y:auto;padding:6px 10px;">
+        <div id="admin-refs-list" style="font-size:12px;color:var(--text3)">Sélectionnez une demande</div>
+      </div>
+
+      <!-- VALIDER ET IMPRIMER -->
+      <button class="btn-print" onclick="adminValiderEtImprimer()">🖨️ VALIDER ET IMPRIMER</button>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════
+       ÉCRAN HISTORIQUE
+       ════════════════════════════════════════ -->
+  <div class="screen" id="screen-historique">
+    <div class="user-content">
+      <!-- Header historique -->
+      <div class="row" style="align-items:center">
+        <div style="flex:1">
+          <div id="histo-admin-name" style="font-weight:700;font-size:14px;color:var(--accent)">— Administrateur —</div>
+          <div id="histo-date" style="font-size:11px;color:var(--text3)"></div>
+        </div>
+        <div>
+          <button class="btn btn-outline btn-sm" onclick="exportHistoCSV()">⬇ CSV</button>
+        </div>
+      </div>
+
+      <!-- Filtres -->
+      <div class="row">
+        <div>
+          <label>Filtre domaine</label>
+          <select id="histo-filter-domaine" onchange="refreshHistorique()">
+            <option value="">Tous</option>
+            <option value="Son">Son</option>
+            <option value="Lumière">Lumière</option>
+            <option value="Vidéo">Vidéo</option>
+          </select>
+        </div>
+        <div>
+          <label>Filtre utilisateur</label>
+          <input type="text" id="histo-filter-user" placeholder="Rechercher..." oninput="refreshHistorique()">
+        </div>
+      </div>
+
+      <!-- Synthèse stock -->
+      <div class="section-label">État du stock — Manquants</div>
+      <div class="panel" style="padding:8px 12px;overflow-x:auto;flex-shrink:0">
+        <div id="histo-manquants" style="font-size:12px;color:var(--text3)">Calculé depuis les demandes en cours</div>
+      </div>
+
+      <!-- Table historique -->
+      <div class="section-label">Historique des demandes (1 Jan → 31 Déc)</div>
+      <div class="hist-table-wrap">
+        <table id="histo-table">
+          <thead>
+            <tr>
+              <th>Date demande</th>
+              <th>Utilisateur</th>
+              <th>Projet</th>
+              <th>Domaine</th>
+              <th>Référence</th>
+              <th>Descriptif</th>
+              <th>Qté</th>
+              <th>Sortie</th>
+              <th>Retour</th>
+              <th>Manquant ?</th>
+            </tr>
+          </thead>
+          <tbody id="histo-body"></tbody>
+        </table>
+      </div>
+
+      <!-- IMPRIMER -->
+      <button class="btn-print" onclick="histoImprimer()">🖨️ Imprimer l'état du stock</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     JAVASCRIPT PRINCIPAL
+     ══════════════════════════════════════════════ -->
+<script>
+// ─── INIT ───
+window.addEventListener("DOMContentLoaded", () => {
+  // Remplir la liste des utilisateurs
+  const sel = document.getElementById("u-user");
+  UTILISATEURS.forEach(u => {
+    const o = document.createElement("option");
+    o.value = u; o.textContent = u; sel.appendChild(o);
+  });
+
+  // Dates par défaut
+  document.getElementById("u-date-sortie").value = today();
+  document.getElementById("u-date-retour").value = today();
+
+  // Charger stock et demandes depuis Google Sheets
+  loadStockFromSheet();
+  loadDemandesFromSheet();
+
+  // Affichage initial
+  onDomaineChange();
+  updateHistoDate();
+});
+
+// ─── TABS ───
+function switchTab(tab) {
+  ["user","admin","historique"].forEach(t => {
+    document.getElementById("screen-" + t).classList.remove("active");
+    document.getElementById("tab-" + (t==="historique"?"histo":t==="user"?"user":"admin")).classList.remove("active");
+  });
+  document.getElementById("screen-" + tab).classList.add("active");
+  const tabId = tab === "historique" ? "histo" : tab;
+  document.getElementById("tab-" + tabId).classList.add("active");
+
+  if ((tab === "admin" || tab === "historique") && !currentAdmin) {
+    openLogin();
+  }
+  if (tab === "historique") {
+    refreshHistorique();
+  }
+  if (tab === "admin") {
+    refreshAdminView();
+  }
+}
+
+// ─── LOGIN ───
+function openLogin() {
+  document.getElementById("login-screen").classList.remove("hidden");
+  document.getElementById("login-password").value = "";
+}
+function closeLogin() {
+  document.getElementById("login-screen").classList.add("hidden");
+}
+function doLogin() {
+  const idx = parseInt(document.getElementById("login-admin-select").value);
+  const pwd = document.getElementById("login-password").value;
+  if (isNaN(idx) || document.getElementById("login-admin-select").value === "") {
+    showToast("⚠ Sélectionnez un administrateur"); return;
+  }
+  const admin = ADMINS[idx];
+  if (pwd !== admin.password) {
+    showToast("❌ Mot de passe incorrect"); return;
+  }
+  currentAdmin = admin;
+  document.getElementById("admin-nom-display").textContent = admin.nom + " — " + admin.domaine;
+  document.getElementById("histo-admin-name").textContent = admin.nom + " — " + admin.domaine;
+  document.getElementById("header-badge").textContent = admin.domaine;
+  closeLogin();
+  refreshAdminView();
+  refreshHistorique();
+  showToast("✅ Bienvenue, " + admin.nom);
+}
+function logout() {
+  currentAdmin = null;
+  document.getElementById("admin-nom-display").textContent = "— Non connecté —";
+  document.getElementById("histo-admin-name").textContent = "— Administrateur —";
+  document.getElementById("header-badge").textContent = "Stock";
+  showToast("Déconnecté");
+}
+
+// ─── DOMAINE CHANGE ───
+function onDomaineChange() {
+  const domaine = document.getElementById("u-domaine").value;
+  refreshStockList();
+}
+
+// ─── STOCK LIST ───
+function refreshStockList() {
+  const domaine = document.getElementById("u-domaine").value;
+  const key = getDomainKey(domaine);
+  const list = document.getElementById("stock-list");
+  list.innerHTML = "";
+
+  const items = STOCK[key] || [];
+  items.forEach(item => {
+    const inPanier = panier.find(p => p.ref === item.ref);
+    const qteDemandee = inPanier ? inPanier.qteDemandee : 0;
+    const dispo = item.qteDispo;
+    let cls = dispo > 3 ? "dispo-ok" : dispo > 0 ? "dispo-low" : "dispo-zero";
+
+    const div = document.createElement("div");
+    div.className = "stock-item";
+    div.innerHTML = `
+      <div class="stock-ref" onclick="showDesc('${item.ref}','${key}')" style="cursor:pointer">
+        <div class="ref-name">${item.ref}</div>
+        <div class="ref-dispo ${cls}">${dispo} dispo.</div>
+      </div>
+      <div class="qty-ctrl">
+        <button class="qty-btn" onclick="changeQty('${item.ref}','${key}',-1)">−</button>
+        <span class="qty-val" id="qv-${item.ref}">${qteDemandee}</span>
+        <button class="qty-btn" onclick="changeQty('${item.ref}','${key}',1)">+</button>
+      </div>
+    `;
+    list.appendChild(div);
+  });
+}
+
+function showDesc(ref, key) {
+  const item = STOCK[key].find(i => i.ref === ref);
+  if (!item) return;
+  document.getElementById("desc-panel").innerHTML = `
+    <strong style="font-size:12px;color:var(--text)">${item.ref}</strong><br>
+    <span style="color:var(--text2)">${item.desc}</span><br><br>
+    <span class="chip ${item.qteDispo > 3 ? 'chip-ok' : item.qteDispo > 0 ? 'chip-warn' : 'chip-danger'}">${item.qteDispo} en stock</span>
+    <span class="chip" style="margin-left:4px">Total : ${item.qte}</span>
+  `;
+}
+
+function changeQty(ref, key, delta) {
+  const item = STOCK[key].find(i => i.ref === ref);
+  if (!item) return;
+  let p = panier.find(p => p.ref === ref);
+  if (!p) {
+    p = { ref, desc: item.desc, domaine: key, qteMax: item.qteDispo, qteDemandee: 0 };
+    panier.push(p);
+  }
+  p.qteDemandee = Math.max(0, Math.min(p.qteMax, p.qteDemandee + delta));
+  if (p.qteDemandee === 0) panier = panier.filter(x => x.ref !== ref);
+
+  const el = document.getElementById("qv-" + ref);
+  if (el) el.textContent = p.qteDemandee > 0 ? p.qteDemandee : 0;
+  refreshPanierSummary();
+  showDesc(ref, key);
+}
+
+function refreshPanierSummary() {
+  const el = document.getElementById("panier-summary");
+  if (panier.length === 0) {
+    el.innerHTML = `<span style="color:var(--text3)">Aucun article sélectionné</span>`;
+    return;
+  }
+  el.innerHTML = panier.map(p =>
+    `<div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--surface2);padding:2px 0">
+      <span style="font-weight:600">${p.ref}</span>
+      <span style="color:var(--accent);font-weight:700">×${p.qteDemandee}</span>
+    </div>`
+  ).join("");
+}
+
+// ─── MODAL AJOUTER ───
+function openAjouter() {
+  const domaine = document.getElementById("u-domaine").value;
+  const key = getDomainKey(domaine);
+  const list = document.getElementById("add-ref-list");
+  list.innerHTML = "";
+  STOCK[key].forEach(item => {
+    const checked = panier.find(p => p.ref === item.ref) ? "checked" : "";
+    const div = document.createElement("div");
+    div.className = "add-ref-item";
+    div.innerHTML = `
+      <label class="checkbox-label">
+        <input type="checkbox" ${checked} id="cb-${item.ref}" onchange="toggleRefInPanier('${item.ref}','${key}')">
+        <span><strong>${item.ref}</strong> — ${item.desc.substring(0,40)}...</span>
+      </label>
+      <span class="chip ${item.qteDispo>3?'chip-ok':item.qteDispo>0?'chip-warn':'chip-danger'}">${item.qteDispo}</span>
+    `;
+    list.appendChild(div);
+  });
+  document.getElementById("modal-ajouter").classList.remove("hidden");
+}
+function closeAjouter() {
+  document.getElementById("modal-ajouter").classList.add("hidden");
+}
+function confirmAjouter() {
+  closeAjouter();
+  refreshStockList();
+  refreshPanierSummary();
+  showToast("Références mises à jour");
+}
+function toggleRefInPanier(ref, key) {
+  const cb = document.getElementById("cb-" + ref);
+  const item = STOCK[key].find(i => i.ref === ref);
+  if (cb.checked) {
+    if (!panier.find(p => p.ref === ref)) {
+      panier.push({ ref, desc: item.desc, domaine: key, qteMax: item.qteDispo, qteDemandee: 1 });
+    }
+  } else {
+    panier = panier.filter(p => p.ref !== ref);
+  }
+}
+
+// ─── VALIDER ET IMPRIMER (UTILISATEUR) ───
+async function validerEtImprimer() {
+  const user = document.getElementById("u-user").value;
+  const projet = document.getElementById("u-projet").value;
+  const domaine = document.getElementById("u-domaine").value;
+  const sortie = document.getElementById("u-date-sortie").value;
+  const retour = document.getElementById("u-date-retour").value;
+
+  if (!user) { showToast("⚠ Sélectionnez un utilisateur"); return; }
+  if (!projet) { showToast("⚠ Entrez le nom du projet"); return; }
+  if (panier.length === 0) { showToast("⚠ Aucun article sélectionné"); return; }
+  if (!sortie || !retour) { showToast("⚠ Sélectionnez les dates"); return; }
+
+  const dateDemande = today();
+
+  // Préparer les lignes de données
+  const rows = panier.map(p => ({
+    dateDemande, nomProjet: projet, utilisateur: user,
+    reference: p.ref, descriptif: p.desc, quantite: p.qteDemandee,
+    etatStock: STOCK[getDomainKey(domaine)].find(i=>i.ref===p.ref)?.qteDispo || 0,
+    dateSortie: sortie, dateRetour: retour, domaine
+  }));
+
+  // Enregistrement en local
+  const demande = { id: Date.now(), dateDemande, utilisateur: user, projet, domaine, sortie, retour, lignes: panier.map(p=>({...p})) };
+  DEMANDES.push(demande);
+
+  // Mise à jour des stocks locaux
+  panier.forEach(p => {
+    const key = getDomainKey(domaine);
+    const item = STOCK[key].find(i => i.ref === p.ref);
+    if (item) item.qteDispo = Math.max(0, item.qteDispo - p.qteDemandee);
+  });
+
+  // Envoyer vers Google Sheets
+  const res = await sendToSheet("addDemande", rows);
+  if (res && res.ok) {
+    showToast("✅ Demande envoyée vers Google Sheets");
+  } else {
+    showToast("⚠ Hors ligne — données sauvegardées localement");
+  }
+
+  // Générer bon d'impression
+  const html = buildPrintHTML({ dateDemande, user, projet, domaine, sortie, retour, lignes: panier });
+  printInNewWindow(html);
+
+  // Réinitialiser
+  panier = [];
+  refreshStockList();
+  refreshPanierSummary();
+  refreshAdminView();
+  refreshHistorique();
+}
+
+// ─── VALIDER ET IMPRIMER (ADMIN) ───
+function adminValiderEtImprimer() {
+  if (!currentAdmin) { showToast("⚠ Connectez-vous d'abord"); openLogin(); return; }
+  if (!selectedReq) { showToast("⚠ Sélectionnez une demande"); return; }
+  const r = selectedReq;
+  const html = buildPrintHTML({ dateDemande: r.dateDemande, user: r.utilisateur, projet: r.projet, domaine: r.domaine, sortie: r.sortie, retour: r.retour, lignes: r.lignes });
+  printInNewWindow(html);
+}
+
+// ─── ADMIN VIEW ───
+function refreshAdminView() {
+  const list = document.getElementById("admin-req-list");
+  list.innerHTML = "";
+  if (DEMANDES.length === 0) {
+    list.innerHTML = `<div style="font-size:12px;color:var(--text3)">Aucune demande</div>`;
+    return;
+  }
+  DEMANDES.forEach((d, i) => {
+    const dc = getDomainColor(d.domaine);
+    const div = document.createElement("div");
+    div.className = "req-item" + (selectedReq && selectedReq.id === d.id ? " selected" : "");
+    div.style.flexShrink = "0";
+    div.style.minWidth = "160px";
+    div.innerHTML = `
+      <div class="ri-title"><span class="dot dot-${dc}" style="display:inline-block;vertical-align:middle;margin-right:4px"></span>${d.utilisateur}</div>
+      <div class="ri-sub">${d.projet} · ${fmtDate(d.dateDemande)}</div>
+    `;
+    div.onclick = () => selectReq(d, div);
+    list.appendChild(div);
+  });
+}
+
+function selectReq(d, el) {
+  selectedReq = d;
+  document.querySelectorAll(".req-item").forEach(x => x.classList.remove("selected"));
+  el.classList.add("selected");
+
+  document.getElementById("a-user").textContent = d.utilisateur;
+  document.getElementById("a-projet").textContent = d.projet;
+  document.getElementById("a-domaine").innerHTML = `<span class="badge-domain badge-${getDomainColor(d.domaine)}">${d.domaine}</span>`;
+  document.getElementById("a-date-demande").textContent = fmtDate(d.dateDemande);
+  document.getElementById("a-date-sortie").textContent = fmtDate(d.sortie);
+  document.getElementById("a-date-retour").textContent = fmtDate(d.retour);
+
+  const refList = document.getElementById("admin-refs-list");
+  refList.innerHTML = "";
+  (d.lignes || []).forEach(l => {
+    const div = document.createElement("div");
+    div.style.cssText = "display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--surface2)";
+    div.innerHTML = `<span><strong>${l.ref}</strong> — ${l.desc ? l.desc.substring(0,35)+"..." : ""}</span>
+                     <span style="color:var(--accent);font-weight:700">×${l.qteDemandee}</span>`;
+    refList.appendChild(div);
+  });
+}
+
+// ─── HISTORIQUE ───
+function updateHistoDate() {
+  const el = document.getElementById("histo-date");
+  if (el) el.textContent = new Date().toLocaleDateString("fr-FR", { weekday:"long", year:"numeric", month:"long", day:"numeric" });
+}
+
+function refreshHistorique() {
+  updateHistoDate();
+  const filterDomaine = document.getElementById("histo-filter-domaine")?.value || "";
+  const filterUser = (document.getElementById("histo-filter-user")?.value || "").toLowerCase();
+
+  // Filtrer demandes
+  let filtered = DEMANDES.filter(d => {
+    if (filterDomaine && d.domaine !== filterDomaine) return false;
+    if (filterUser && !d.utilisateur.toLowerCase().includes(filterUser)) return false;
+    return true;
+  });
+
+  // Table
+  const tbody = document.getElementById("histo-body");
+  tbody.innerHTML = "";
+  filtered.forEach(d => {
+    (d.lignes || []).forEach(l => {
+      const key = getDomainKey(d.domaine);
+      const stockItem = STOCK[key]?.find(i => i.ref === l.ref);
+      const manquant = stockItem ? l.qteDemandee > stockItem.qteDispo + l.qteDemandee : false;
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${fmtDate(d.dateDemande)}</td>
+        <td>${d.utilisateur}</td>
+        <td>${d.projet}</td>
+        <td><span class="badge-domain badge-${getDomainColor(d.domaine)}">${d.domaine}</span></td>
+        <td><strong>${l.ref}</strong></td>
+        <td style="max-width:120px;overflow:hidden;text-overflow:ellipsis">${l.desc || "–"}</td>
+        <td style="text-align:center;font-weight:700">${l.qteDemandee}</td>
+        <td>${fmtDate(d.sortie)}</td>
+        <td>${fmtDate(d.retour)}</td>
+        <td>${manquant ? '<span class="chip chip-danger">⚠ OUI</span>' : '<span class="chip chip-ok">OK</span>'}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  });
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;color:var(--text3);padding:16px">Aucune demande enregistrée</td></tr>`;
+  }
+
+  // Synthèse manquants
+  const manquantsEl = document.getElementById("histo-manquants");
+  const allMissing = [];
+  Object.entries(STOCK).forEach(([key, items]) => {
+    items.forEach(item => {
+      if (item.qteDispo < item.qte) {
+        // Trouver dernier utilisateur
+        let dernierUser = "–", dernierProjet = "–", dernierSortie = "–";
+        DEMANDES.slice().reverse().forEach(d => {
+          const l = (d.lignes||[]).find(l => l.ref === item.ref);
+          if (l && l.qteDemandee > 0) {
+            if (dernierUser === "–") { dernierUser = d.utilisateur; dernierProjet = d.projet; dernierSortie = fmtDate(d.sortie); }
+          }
+        });
+        allMissing.push({ ref: item.ref, manque: item.qte - item.qteDispo, total: item.qte, dispo: item.qteDispo, user: dernierUser, projet: dernierProjet, sortie: dernierSortie });
+      }
+    });
+  });
+  if (allMissing.length === 0) {
+    manquantsEl.innerHTML = `<span class="chip chip-ok">✅ Aucun article manquant</span>`;
+  } else {
+    manquantsEl.innerHTML = allMissing.map(m =>
+      `<div style="display:flex;gap:8px;align-items:center;margin-bottom:4px;flex-wrap:wrap">
+        <strong style="font-size:12px">${m.ref}</strong>
+        <span class="chip chip-danger">−${m.manque}</span>
+        <span style="font-size:11px;color:var(--text3)">${m.dispo}/${m.total} · ${m.user} · ${m.projet} · sortie ${m.sortie}</span>
+      </div>`
+    ).join("");
+  }
+}
+
+// ─── EXPORT CSV ───
+function exportHistoCSV() {
+  const rows = [["DATE","UTILISATEUR","PROJET","DOMAINE","REFERENCE","DESCRIPTIF","QUANTITE","SORTIE","RETOUR","MANQUANT"]];
+  DEMANDES.forEach(d => {
+    (d.lignes||[]).forEach(l => {
+      const key = getDomainKey(d.domaine);
+      const si = STOCK[key]?.find(i=>i.ref===l.ref);
+      const manquant = si ? (l.qteDemandee > si.qteDispo + l.qteDemandee ? "OUI" : "NON") : "?";
+      rows.push([d.dateDemande, d.utilisateur, d.projet, d.domaine, l.ref, l.desc, l.qteDemandee, d.sortie, d.retour, manquant]);
+    });
+  });
+  const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(";")).join("\n");
+  const a = document.createElement("a");
+  a.href = "data:text/csv;charset=utf-8,\uFEFF" + encodeURIComponent(csv);
+  a.download = "historique-stock-DNMADE-" + today() + ".csv";
+  a.click();
+}
+
+// ─── IMPRESSION HISTORIQUE ───
+function histoImprimer() {
+  if (!currentAdmin) { showToast("⚠ Connectez-vous d'abord"); openLogin(); return; }
+  const rows = [];
+  DEMANDES.forEach(d => {
+    (d.lignes||[]).forEach(l => {
+      const key = getDomainKey(d.domaine);
+      const si = STOCK[key]?.find(i=>i.ref===l.ref);
+      const manquant = si ? (l.qteDemandee > si.qteDispo + l.qteDemandee ? "OUI" : "NON") : "?";
+      rows.push({ date: d.dateDemande, user: d.utilisateur, projet: d.projet, domaine: d.domaine, ref: l.ref, desc: l.desc, qte: l.qteDemandee, sortie: d.sortie, retour: d.retour, manquant });
+    });
+  });
+
+  const html = `<html><head><meta charset="UTF-8"><title>État du stock DNMADE</title>
+  <style>
+    body{font-family:sans-serif;font-size:12px;padding:20px;color:#1A1D23}
+    h2{color:#3B6FCA;border-bottom:2px solid #3B6FCA;padding-bottom:8px;margin-bottom:12px}
+    table{width:100%;border-collapse:collapse;margin-top:8px}
+    th{background:#3B6FCA;color:#fff;padding:6px 8px;text-align:left;font-size:11px}
+    td{padding:5px 8px;border-bottom:1px solid #eee;font-size:11px}
+    tr:nth-child(even) td{background:#f5f7fc}
+    .manq{color:#D94040;font-weight:700}
+  </style></head><body>
+  <h2>📦 État du Stock — DNMADE Daunot</h2>
+  <p>Administrateur : ${currentAdmin ? currentAdmin.nom : "–"} · Imprimé le ${new Date().toLocaleDateString("fr-FR")}</p>
+  <table>
+    <thead><tr><th>Date</th><th>Utilisateur</th><th>Projet</th><th>Domaine</th><th>Référence</th><th>Descriptif</th><th>Qté</th><th>Sortie</th><th>Retour</th><th>Manquant</th></tr></thead>
+    <tbody>${rows.map(r=>`<tr><td>${fmtDate(r.date)}</td><td>${r.user}</td><td>${r.projet}</td><td>${r.domaine}</td><td><strong>${r.ref}</strong></td><td>${r.desc||""}</td><td>${r.qte}</td><td>${fmtDate(r.sortie)}</td><td>${fmtDate(r.retour)}</td><td class="${r.manquant==="OUI"?"manq":""}">${r.manquant}</td></tr>`).join("")}</tbody>
+  </table>
+  <p style="margin-top:16px;color:#999;font-size:10px">Gestionnaire des stocks DNMADE Daunot · ${new Date().toLocaleString("fr-FR")}</p>
+  <script>window.onload=()=>{window.print();}<\/script></body></html>`;
+  printInNewWindow(html);
+}
+
+// ─── CONSTRUCTION DU BON D'IMPRESSION ───
+function buildPrintHTML({ dateDemande, user, projet, domaine, sortie, retour, lignes }) {
+  return `<html><head><meta charset="UTF-8"><title>Bon de demande DNMADE</title>
+  <style>
+    body{font-family:'Segoe UI',sans-serif;font-size:13px;padding:24px;max-width:700px;margin:0 auto;color:#1A1D23}
+    .header{text-align:center;border-bottom:3px solid #3B6FCA;padding-bottom:16px;margin-bottom:20px}
+    .header h2{font-size:20px;font-weight:800;color:#3B6FCA;letter-spacing:.5px}
+    .header p{font-size:11px;color:#666;margin-top:4px}
+    .logo{font-size:28px;margin-bottom:6px}
+    .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px;background:#F7F8FA;padding:14px;border-radius:8px}
+    .info-grid dt{font-size:10px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px}
+    .info-grid dd{font-size:13px;font-weight:600;color:#1A1D23}
+    table{width:100%;border-collapse:collapse}
+    th{background:#3B6FCA;color:#fff;padding:8px 10px;text-align:left;font-size:12px}
+    td{padding:7px 10px;border-bottom:1px solid #EEF1F7;font-size:12px}
+    tr:nth-child(even) td{background:#F7F8FA}
+    .footer{margin-top:24px;font-size:10px;color:#999;text-align:center;border-top:1px solid #eee;padding-top:12px}
+    .sig{margin-top:30px;display:grid;grid-template-columns:1fr 1fr;gap:20px}
+    .sig-box{border-top:1px solid #ccc;padding-top:8px;font-size:11px;color:#666}
+    @media print{body{padding:0} .no-print{display:none}}
+  </style></head><body>
+  <div class="header"><div class="logo">📦</div><h2>BON DE DEMANDE DE MATÉRIEL</h2><p>DNMADE Daunot · Gestionnaire des stocks</p></div>
+  <dl class="info-grid">
+    <div><dt>Date de demande</dt><dd>${fmtDate(dateDemande)}</dd></div>
+    <div><dt>Utilisateur</dt><dd>${user}</dd></div>
+    <div><dt>Projet</dt><dd>${projet}</dd></div>
+    <div><dt>Domaine</dt><dd>${domaine}</dd></div>
+    <div><dt>Date de sortie</dt><dd>${fmtDate(sortie)}</dd></div>
+    <div><dt>Date de retour</dt><dd>${fmtDate(retour)}</dd></div>
+  </dl>
+  <table>
+    <thead><tr><th>Référence</th><th>Descriptif</th><th>Quantité demandée</th></tr></thead>
+    <tbody>${lignes.map(l=>`<tr><td><strong>${l.ref}</strong></td><td>${l.desc||""}</td><td style="text-align:center;font-weight:700;color:#3B6FCA">${l.qteDemandee}</td></tr>`).join("")}</tbody>
+  </table>
+  <div class="sig">
+    <div class="sig-box">Signature de l'utilisateur<br><br><br></div>
+    <div class="sig-box">Visa du responsable<br><br><br></div>
+  </div>
+  <div class="footer">Gestionnaire des stocks DNMADE Daunot · Imprimé le ${new Date().toLocaleString("fr-FR")}</div>
+  <script>window.onload=()=>{window.print();}<\/script></body></html>`;
+}
+
+function printInNewWindow(html) {
+  const win = window.open("", "_blank", "width=800,height=900");
+  win.document.write(html);
+  win.document.close();
+}
+</script>
+</body>
+</html>
